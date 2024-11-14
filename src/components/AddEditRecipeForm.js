@@ -77,7 +77,7 @@ function AddEditRecipeForm({ handleAddRecipe }) {
               <option value="eggsAndBreakfast">
                 Eggs & Breakfast
               </option>
-              <option value="eggsAndBreakfast">
+              <option value="dessertsAndBakedGoods">
                 Desserts & Baked Goods
               </option>
               <option value="fishAndSeafood">
