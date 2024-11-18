@@ -189,7 +189,7 @@ function App() {
           </div>
         </div>
         <AddEditRecipeForm 
-          exitingRecipe={currentRecipe}
+          existingRecipe={currentRecipe}
           handleAddRecipe={handleAddRecipe}
           handleUpdateRecipe={handleUpdateRecipe}
           handleEditRecipeCancel={handleEditRecipeCancel}
