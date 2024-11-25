@@ -10,8 +10,11 @@ function App() {
   const [user, setUser] = useState(null);
   const [currentRecipe, setCurrentRecipe] = useState(null);
   const  [recipes, setRecipes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    setIsLoading(true);
+
     fetchRecipes()
       .then((fetchedRecipes) => {
         setRecipes(fetchedRecipes);
@@ -19,6 +22,9 @@ function App() {
       .catch((error) => {
         console.error(error.message)
         throw error;
+      })
+      .finally(() => {
+        setIsLoading(false);
       })
   }, [user])
 
@@ -93,6 +99,27 @@ function App() {
     }
   }
 
+  async function handleDeleteRecipe(recipeId) {
+    const deleteConfirmation = window.confirm('Are you sure you want to delete this recipe?');
+
+    if (deleteConfirmation) {
+      try {
+        await FirebaseFirestoreService.deleteDocument('recipes', recipeId);
+
+        handleFetchRecipes();
+
+        setCurrentRecipe(null);
+
+        window.scrollTo(0, 0);
+
+        alert(`successfully deleted a recipe with an ID = ${recipeId}`);
+      } catch (error) {
+        alert(error.message);
+        throw error;
+      }
+    }
+  }
+
   function handleEditRecipeClick(recipeId) {
     const selectedRecipe = recipes.find((recipe) => {
       return recipe.id === recipeId;
@@ -142,8 +169,26 @@ function App() {
       <div className='main'>
         <div className='center'>
           <div className='recipe-list-box'>
+          {
+            isLoading ? (
+              <div className='fire'>
+                <div className='flames'>
+                  <div className='flame'></div>
+                  <div className='flame'></div>
+                  <div className='flame'></div>
+                  <div className='flame'></div>
+                </div>
+                <div className='logs'></div>
+              </div>
+            ) : null
+          }
+          {
+            !isLoading && recipes && recipes.length === 0 ? (
+              <h5 className='no-recipes'>No Recipes Found</h5>
+            ) : null
+          }
             {
-              recipes && recipes.length > 0 ? (
+              !isLoading && recipes && recipes.length > 0 ? (
                 <div className='recipe-list'>
                   {
                     recipes.map((recipe) => {
@@ -192,6 +237,7 @@ function App() {
           existingRecipe={currentRecipe}
           handleAddRecipe={handleAddRecipe}
           handleUpdateRecipe={handleUpdateRecipe}
+          handleDeleteRecipe={handleDeleteRecipe}
           handleEditRecipeCancel={handleEditRecipeCancel}
         />      
       </div>
