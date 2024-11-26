@@ -13,6 +13,7 @@ function App() {
   const [recipes, setRecipes] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [orderBy, setOrderBy] = useState('publishDateDesc')
 
   // Set up Firebase Authentication subscription inside useEffect
   useEffect(() => {
@@ -26,7 +27,7 @@ function App() {
     }
   }, [])
 
-  // Fetch recipes whenever user or categoryFilter changes
+  // Fetch recipes whenever user, categoryFilter, or orderBy changes
   useEffect(() => {
     setIsLoading(true)
 
@@ -41,7 +42,7 @@ function App() {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [user, categoryFilter])
+  }, [user, categoryFilter, orderBy])
 
   // Function to fetch recipes based on current filters and user authentication
   async function fetchRecipes() {
@@ -63,10 +64,35 @@ function App() {
       })
     }
 
+    const orderByField = 'publishDate'
+    let orderByDirection = 'desc' // Default to descending
+
+    if (orderBy) {
+      switch (orderBy) {
+        case 'publishDateAsc':
+          orderByDirection = 'asc'
+          break
+        case 'publishDateDesc':
+          orderByDirection = 'desc'
+          break
+        default:
+          console.warn(`Unknown orderBy value: ${orderBy}. Defaulting to 'desc'.`)
+          orderByDirection = 'desc'
+          break
+      }
+    }
+
+    // Debugging Logs
+    console.log('Fetching recipes with the following parameters:')
+    console.log('Queries:', queries)
+    console.log('Order By:', orderByField, orderByDirection)
+
     try {
       const response = await FirebaseFirestoreService.readDocuments({
         collection: 'recipes',
         queries: queries,
+        orderByField: orderByField,
+        orderByDirection: orderByDirection
       })
 
       const fetchedRecipes = response.docs.map((recipeDoc) => {
@@ -76,6 +102,9 @@ function App() {
 
         return { ...data, id }
       })
+
+      // Debugging Log
+      console.log('Fetched Recipes:', fetchedRecipes)
 
       return fetchedRecipes
     } catch (error) {
@@ -209,6 +238,22 @@ function App() {
               <option value="dessertsAndBakedGoods">Desserts & Baked Goods</option>
               <option value="fishAndSeafood">Fish & Seafood</option>
               <option value="vegetables">Vegetables</option>
+            </select>
+          </label>
+          <label className="input-label">
+            Order By:
+            <select
+              value={orderBy}
+              onChange={(e) => setOrderBy(e.target.value)}
+              className="select"
+            >
+              <option value="publishDateDesc">
+                Publish Date (newest - oldest)
+              </option>
+              {/* Fixed Option Value */}
+              <option value="publishDateAsc">
+                Publish Date (oldest - newest)
+              </option>
             </select>
           </label>
         </div>
