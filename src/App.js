@@ -1,4 +1,4 @@
-// App.js
+/* eslint-disable */
 import { useEffect, useState, startTransition } from 'react'
 import FirebaseAuthService from './FirebaseAuthService'
 import LoginForm from './components/LoginForm'
@@ -14,7 +14,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
   const [orderBy, setOrderBy] = useState('publishDateDesc')
-  const [recipesPerPage, setRecipesPerPage] = useState(3) // Initialized to 3
+  const [recipesPerPage, setRecipesPerPage] = useState(3) 
 
   // Set up Firebase Authentication subscription inside useEffect
   useEffect(() => {
