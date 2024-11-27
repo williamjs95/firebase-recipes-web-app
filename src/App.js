@@ -14,6 +14,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
   const [orderBy, setOrderBy] = useState('publishDateDesc')
+  const [recipesPerPage, setRecipesPerPage] = useState(3) // Initialized to 3
 
   // Set up Firebase Authentication subscription inside useEffect
   useEffect(() => {
@@ -29,23 +30,14 @@ function App() {
 
   // Fetch recipes whenever user, categoryFilter, or orderBy changes
   useEffect(() => {
-    setIsLoading(true)
-
-    fetchRecipes()
-      .then((fetchedRecipes) => {
-        setRecipes(fetchedRecipes)
-      })
-      .catch((error) => {
-        console.error('Error fetching recipes:', error.message)
-        // Optionally, display an error message to the user
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [user, categoryFilter, orderBy])
+    // Reset recipes when filters change
+    setRecipes([])
+    handleFetchRecipes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, categoryFilter, orderBy, recipesPerPage])
 
   // Function to fetch recipes based on current filters and user authentication
-  async function fetchRecipes() {
+  async function fetchRecipes(cursorId = '') {
     const queries = []
 
     if (categoryFilter) {
@@ -82,20 +74,17 @@ function App() {
       }
     }
 
-    // Debugging Logs
-    console.log('Fetching recipes with the following parameters:')
-    console.log('Queries:', queries)
-    console.log('Order By:', orderByField, orderByDirection)
-
     try {
       const response = await FirebaseFirestoreService.readDocuments({
         collection: 'recipes',
         queries: queries,
         orderByField: orderByField,
-        orderByDirection: orderByDirection
+        orderByDirection: orderByDirection,
+        perPage: recipesPerPage,
+        cursorId: cursorId,
       })
 
-      const fetchedRecipes = response.docs.map((recipeDoc) => {
+      const newRecipes = response.docs.map((recipeDoc) => {
         const id = recipeDoc.id
         const data = recipeDoc.data()
         data.publishDate = new Date(data.publishDate.seconds * 1000)
@@ -103,10 +92,7 @@ function App() {
         return { ...data, id }
       })
 
-      // Debugging Log
-      console.log('Fetched Recipes:', fetchedRecipes)
-
-      return fetchedRecipes
+      return newRecipes
     } catch (error) {
       console.error('Error reading documents:', error.message)
       throw error
@@ -114,14 +100,32 @@ function App() {
   }
 
   // Handler to refetch recipes
-  async function handleFetchRecipes() {
+  async function handleFetchRecipes(cursorId = '') {
     try {
-      const fetchedRecipes = await fetchRecipes()
-      setRecipes(fetchedRecipes)
+      const fetchedRecipes = await fetchRecipes(cursorId)
+      if (cursorId) {
+        // Append new recipes
+        setRecipes((prevRecipes) => [...prevRecipes, ...fetchedRecipes])
+      } else {
+        // Replace recipes (for initial load or when filters change)
+        setRecipes(fetchedRecipes)
+      }
     } catch (error) {
       console.error('Error fetching recipes:', error.message)
       // Optionally, display an error message to the user
     }
+  }
+
+  function handleRecipesPerPageChange(event) {
+    const selectedValue = parseInt(event.target.value, 10) // Convert to number
+    setRecipes([])
+    setRecipesPerPage(selectedValue)
+  }
+
+  function handleLoadMoreRecipesClick() {
+    const lastRecipe = recipes[recipes.length - 1]
+    const cursorId = lastRecipe ? lastRecipe.id : ''
+    handleFetchRecipes(cursorId)
   }
 
   // Handler to add a new recipe
@@ -300,6 +304,32 @@ function App() {
             )}
           </div>
         </div>
+        {(recipes.length > 0) && (
+          <>
+            <label className="input-label">
+              Recipes Per Page:
+              <select
+                value={recipesPerPage}
+                onChange={handleRecipesPerPageChange}
+                className="select"
+              >
+                <option value="3">3</option>
+                <option value="6">6</option>
+                <option value="9">9</option>
+              </select>
+            </label>
+            <div className="pagination">
+              <button
+                type='button'
+                onClick={handleLoadMoreRecipesClick}
+                className="primary-button"
+                disabled={isLoading} // Disable while loading
+              >
+                {isLoading ? 'Loading...' : 'LOAD MORE RECIPES'}
+              </button>
+            </div>
+          </>
+        )}
         <AddEditRecipeForm
           existingRecipe={currentRecipe}
           handleAddRecipe={handleAddRecipe}
